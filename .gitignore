@@ -1,0 +1,6 @@
+*.RData
+*.Rhistory
+*.ipynb_checkpoints
+sp18/python-workshop/data
+sp18/r-project-day/GoBike_data
+sp18/r-project-day/GoBike_data.zip

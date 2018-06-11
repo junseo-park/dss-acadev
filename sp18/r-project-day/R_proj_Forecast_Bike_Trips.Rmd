@@ -1,0 +1,188 @@
+---
+title: "R_Based_Project"
+author: "Allen Chen"
+date: "April 7, 2018"
+output: html_document
+---
+
+# Forecast Total number of bike trips with accessible and available data
+
+Motivations: 
++ Knowing the demand can help structure the supply side of things
++ Forecast revenue
++ Along with the knowledge of customer and riding data, we can make more precise decisions
+like the number of docking at each station, putting bikes at a station..
+
+# Load Library
+```{r warning = False}
+library(dplyr)
+library(ggplot2)
+```
+
+# Load Data
+```{r}
+# what data can we use? Let's import it!
+station <- read.csv("station.csv")
+trip <- read.csv("trip.csv")
+weather <- read.csv("weather.csv")
+```
+
+Let's look at the data in San Francisco during the weekends
+```{r}
+# how can we filter out non-SF records in trip? trip table doesn't have city column?
+# hint: join trip and station table
+trip$id <- trip$start_station_id
+trip <- left_join(trip, station, by = c('id'))
+trip <- trip %>% filter(city == 'San Francisco')
+trip
+```
+
+```{r}
+# Let's filter out non-SF records in weather table
+unique(weather$zip_code)
+weather <- weather %>% filter(zip_code == 94107)
+weather
+```
+
+```{r}
+# Filter out our weekdays for both trip and weather tables
+trip$start_date <- as.Date(trip$start_date, '%m/%d/%Y %k')
+trip$day <- as.factor(weekdays(trip$start_date))
+trip <- trip %>% filter(day == 'Saturday' | day == 'Sunday')
+
+weather$date <- as.Date(weather$date, '%m/%d/%Y')
+weather$day <- as.factor(weekdays(weather$date))
+weather <- weather %>% filter(day == 'Saturday' | day == 'Sunday')
+```
+
+# Get and process our Target Variable
+```{r}
+# Let's get total number of bike rides for every day from 2013/8/29 to 2015/8/31
+num_riders <- trip %>% group_by(start_date) %>% summarise(count = n())
+num_riders
+```
+
+# Get and process our features
+```{r}
+# Do you see any factors that might contribute to number of rides a day? Pick them out!
+weather_features <- weather %>% select(date, mean_temperature_f, mean_humidity, wind_dir_degrees)
+weather_features
+```
+
+```{r}
+# Check the structure of the table
+str(weather_features)
+```
+
+```{r}
+# Any missing values across columns?
+#print('date')
+#sum(is.na(weather_features$date))
+sapply(weather_features, function(x) sum(is.na(x)))
+```
+
+# Explore Our data and Feature Engineering
+```{r}
+# Let's Merge our features and target data together to create a new dataframe data
+data <- merge(weather_features, num_riders, by.x = 'date', by.y = 'start_date')
+# Let's drop unneccesary columns
+data <- data %>% select(-c(date))
+data
+```
+
+```{r}
+# Let's look at the distribution of some columns
+for (i in names(data)) {
+  gg <- ggplot(data, aes(x = data[[i]])) +
+    geom_histogram() +
+    xlab(i)
+  print(gg)
+}
+```
+
+```{r}
+for (i in names(data)) {
+  gg <- ggplot(data = data, aes(x = data[[i]], y = count)) + 
+    geom_point() +
+    xlab(i)
+  print(gg)
+}
+
+```
+
+# Runnign Linear Regression
+```{r}
+# linear regression
+trainingRowIndex <- sample(1:nrow(data), 0.8*nrow(data))  # Let's do a 80/20 split. This returns the indices
+training_data <- data[trainingRowIndex, ]  # Get the training data
+test_data <- data[-trainingRowIndex,]      # Get the testing data
+model <- lm(formula = count ~ ., data = training_data)
+summary(model)
+```
+
+# Residauls
+```{r}
+predicted_y <- predict(model, test_data)
+test_data$residual <- test_data$count - predicted_y
+# Let's visualize it
+x <- seq(1,nrow(test_data))
+ggplot(test_data, aes(x = x, y = residual)) +
+  geom_point()
+```
+
+```{r}
+ggplot(test_data, aes(x = residual)) +
+    geom_histogram()
+```
+
+# Calculate errors
+```{r}
+# Implement rmse function
+RMSE = function(predicted, observed){
+  sqrt(mean((predicted - observed)^2))
+}
+RMSE(predicted_y, test_data$count)
+```
+
+```{r}
+model$coefficients
+```
+
+
+
+
+# Just some notes
+```{r}
+# Feature Engineering
+num_riders <- num_riders %>% mutate('day' = weekdays(start_date, abbreviate=TRUE))
+ggplot(num_riders, aes(day, num_trips)) +
+  geom_bar(stat='identity')
+
+
+# Reset factors to be in day order
+num_riders$day <- factor(num_riders$day, levels=c('Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'))
+ggplot(num_riders, aes(day, num_trips)) +
+  geom_bar(stat='identity')
+```
+
+```{r}
+num_riders <- num_riders %>% mutate('weekend'=(day == 'Sat' | day == 'Sun'))
+ggplot(num_riders, aes(x=start_date, y=num_trips)) +
+  geom_point(aes(color = weekend))
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
