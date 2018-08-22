@@ -2,7 +2,7 @@
 title: "R_Based_Project"
 author: "Allen Chen"
 date: "April 7, 2018"
-output: html_document
+output: github_document
 ---
 
 # Forecast Total number of bike trips with accessible and available data
