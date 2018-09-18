@@ -14,7 +14,7 @@ Motivations:
 like the number of docking at each station, putting bikes at a station..
 
 # Load Library
-```{r warning = False}
+```{r warnings=FALSE}
 library(dplyr)
 library(ggplot2)
 ```
@@ -22,9 +22,9 @@ library(ggplot2)
 # Load Data
 ```{r}
 # what data can we use? Let's import it!
-station <- read.csv("station.csv")
-trip <- read.csv("trip.csv")
-weather <- read.csv("weather.csv")
+station <- read.csv("GoBike_data/station.csv")
+trip <- read.csv("GoBike_data/trip.csv")
+weather <- read.csv("GoBike_data/weather.csv")
 ```
 
 Let's look at the data in San Francisco during the weekends
